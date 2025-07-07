@@ -1,4 +1,5 @@
 # test7
 website test 
-use below link 
-https://halitziyakartal.github.io/test7/0030.html
+
+
+use   https://halitziyakartal.github.io/test7/0030.html  if you are seeing this text
