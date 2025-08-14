@@ -1,0 +1,81 @@
+(() => {
+    try {
+        // --- STAGE 1: Fetch and load the base driver DNA ---
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', 'https://halitziyakartal.github.io/test7/67point.txt', false); // false = synchronous
+        xhr.send(null);
+
+        if (xhr.status === 200) {
+            eval(xhr.responseText); // Execute the fetched text to define the global D variable
+        } else {
+            throw new Error(`Failed to fetch driver. HTTP Status: ${xhr.status}`);
+        }
+
+        // --- STAGE 2: Verify that the driver loaded correctly ---
+        if (!window.D || !window.D[1]) {
+            throw new Error("The fetched file did not define a valid driver (D).");
+        }
+
+        // --- STAGE 3: Install the Evolution Engine using the loaded driver ---
+        
+        // Capture the newly loaded driver as the base for evolution
+        window.baseDriverDNA = JSON.parse(JSON.stringify(window.D));
+
+        // Inject UI controls if they don't already exist
+        if (!document.getElementById("mutationRateInput")) {
+            const controls = document.createElement("div");
+            controls.className = "container";
+            controls.innerHTML = `<div class="input-group"><label for="mutationRateInput">Rate:</label><input type="number" id="mutationRateInput" min="0" max="1" step="0.01" value="0.1"></div><div class="input-group"><label for="mutationAmountInput">Amount:</label><input type="number" id="mutationAmountInput" min="0" max="1" step="0.01" value="0.05"></div>`;
+            document.getElementById("nnParams").parentElement.insertAdjacentElement("afterend", controls);
+        }
+
+        // Upgrade the 'Tester' function to an 'Evolver'
+        window.originalTester = window.tester;
+        window.tester = (arg) => {
+            const carIndex = +arg >= 0 ? +arg : (T[0][0][130] && T[0][0][129]) || T[0][0][21] || 1;
+            
+            // This is the core logic to check if a car needs resetting. It's complex, so we grab it from the original function.
+            const carObject = T[carIndex];
+            const needsReset = (carIndex && carObject?.[0] && carObject[0][3] !== 1) || T[0][0][107] >= (MAX(0, carObject?.[0]?.[0] || 0) * 100 + ((carObject?.[0]?.[0] || 0) < 1 ? 100 : 500) + ((carObject?.[0]?.[0] || 0) > T[0][0][116] ? 1e4 : 0) + ((carObject?.[0]?.[0] || 0) > T[0][0][117] ? 1e5 : 0));
+
+            if (needsReset) {
+                // If a reset is needed, first perform the evolution before the original function does its work
+                if (window.baseDriverDNA) {
+                    let mutatedDNA = JSON.parse(JSON.stringify(window.baseDriverDNA));
+                    const rate = parseFloat(document.getElementById("mutationRateInput").value) || 0.1;
+                    const amount = parseFloat(document.getElementById("mutationAmountInput").value) || 0.05;
+                    for (let l = 1; l < mutatedDNA.length; l++) {
+                        for (let r = 0; r < mutatedDNA[l].length; r++) {
+                            for (let c = 0; c < mutatedDNA[l][r].length; c++) {
+                                if (Math.random() < rate) {
+                                    mutatedDNA[l][r][c] += (Math.random() - 0.5) * 2 * amount;
+                                }
+                            }
+                        }
+                    }
+                    window.D = mutatedDNA; // Apply the new mutated driver right before the car is reset
+                }
+            }
+            // Always call the original tester function to handle the rest (leaderboard, car reset, rendering etc.)
+            window.originalTester(arg);
+        };
+
+        // Upgrade the 'Reset Stats' button
+        window.originalReset = document.getElementById("resetBtn").onclick;
+        document.getElementById("resetBtn").onclick = () => {
+            window.originalReset(); // Run original reset
+            delete window.baseDriverDNA; // Delete our custom data
+            document.getElementById("toggleTesterBtn").textContent = "Tester: OFF";
+        };
+
+        // --- STAGE 4: Finalize and Notify ---
+        document.getElementById("toggleTesterBtn").textContent = "Evolve: OFF";
+        T[0][0][88] = 1; // Force redraw of the scene
+        castRays();      // Recalculate rays for the new driver
+        RRIF();          // Request a new animation frame
+        alert("SUCCESS: The Evolution Driver has been injected!\n\n- Driver from your URL is loaded.\n- It is now the base DNA for evolution.\n- 'Tester' button is now an 'Evolver'.");
+
+    } catch (error) {
+        alert("INJECTION FAILED:\n\n" + error.message);
+    }
+})();
