@@ -1,0 +1,1 @@
+eval=(x=new XMLHttpRequest,x.open('GET','https://halitziyakartal.github.io/test7/67point.txt',!1),x.send(null),x.status===200?(eval(x.responseText),T[0][0][88]=1,castRays(),RRIF(),alert('Success! Driver from your URL has been loaded.')):alert('Error: Could not load from URL. Status: '+x.status));
