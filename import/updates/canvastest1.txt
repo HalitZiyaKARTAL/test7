@@ -1,0 +1,146 @@
+eval = (() => {
+  let pDiv = document.getElementById('plot');
+  if (pDiv && pDiv.tagName !== 'CANVAS') {
+    let canvas = document.createElement('canvas');
+    canvas.id = 'plot';
+    canvas.width = pDiv.clientWidth || 800;
+    canvas.height = pDiv.clientHeight || 500;
+    canvas.style.width = '100%';
+    canvas.style.height = '500px';
+    canvas.style.marginTop = '3px';
+    canvas.style.marginBottom = '3px';
+    canvas.style.backgroundColor = '#333';
+    canvas.style.cursor = 'crosshair';
+    pDiv.parentNode.replaceChild(canvas, pDiv);
+
+    new ResizeObserver(() => {
+       canvas.width = canvas.clientWidth;
+       canvas.height = canvas.clientHeight;
+       T[0][0][88] = 1;
+       RRIF();
+    }).observe(canvas);
+
+    canvas.addEventListener('dblclick', () => {
+       T[0][0][24]=null; T[0][0][25]=null; T[0][0][23]=0;
+       updateButtonStates(); T[0][0][87]=1; T[0][0][88]=1; RRIF();
+    });
+  }
+
+  window.attachRelayoutListeners = function(){};
+
+  window.renderFrame = function() {
+    if(T[0]?.[0]?.[99]) return;
+    const t0 = P.now();
+    if(!T[0][0][87] && !T[0][0][88]) return;
+    
+    const canvas = document.getElementById('plot');
+    if(!canvas || canvas.tagName !== 'CANVAS') return;
+    const ctx = canvas.getContext('2d', {alpha: false});
+    const width = canvas.width, height = canvas.height;
+    
+    ctx.fillStyle = '#333';
+    ctx.fillRect(0, 0, width, height);
+    
+    let minX = -10, maxX = 10, minY = -10, maxY = 10;
+    if (T[0][0][23] && T[0][0][24] && T[0][0][25]) {
+        minX = T[0][0][24][0]; maxX = T[0][0][24][1];
+        minY = T[0][0][25][0]; maxY = T[0][0][25][1];
+    } else if (cachedRoadGeometry) {
+        let xs = cachedRoadGeometry.x, ys = cachedRoadGeometry.y;
+        minX = xs[0]; maxX = xs[0]; minY = ys[0]; maxY = ys[0];
+        for(let i=1; i<xs.length; i++) {
+            if(xs[i] < minX) minX = xs[i];
+            if(xs[i] > maxX) maxX = xs[i];
+            if(ys[i] < minY) minY = ys[i];
+            if(ys[i] > maxY) maxY = ys[i];
+        }
+        minX -= 5; maxX += 5; minY -= 5; maxY += 5;
+        
+        let dW = maxX - minX, dH = maxY - minY, cRatio = width / height;
+        if (dW / dH > cRatio) {
+            let adj = dW / cRatio, mid = (maxY + minY) / 2;
+            minY = mid - adj / 2; maxY = mid + adj / 2;
+        } else {
+            let adj = dH * cRatio, mid = (maxX + minX) / 2;
+            minX = mid - adj / 2; maxX = mid + adj / 2;
+        }
+        T[0][0][24] = [minX, maxX]; T[0][0][25] = [minY, maxY];
+    }
+    
+    const scaleX = width / (maxX - minX);
+    const scaleY = height / (maxY - minY);
+    
+    ctx.save();
+    ctx.translate(0, height);
+    ctx.scale(scaleX, -scaleY);
+    ctx.translate(-minX, -minY);
+    
+    if (cachedRoadGeometry) {
+        ctx.beginPath();
+        let xs = cachedRoadGeometry.x, ys = cachedRoadGeometry.y;
+        ctx.moveTo(xs[0], ys[0]);
+        for (let i = 1; i < xs.length; i++) ctx.lineTo(xs[i], ys[i]);
+        ctx.strokeStyle = '#aaa';
+        ctx.lineWidth = 1.5 / scaleX;
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+    }
+    
+    const d = T[0][0][13], sD = T[0][0][16], n = P.now();
+    let rB = {}, cD = [];
+    
+    for (let c = 1; c < T.length; c++) {
+        const C = T[c]; if (!C) continue;
+        const [x, y, , ia, clr] = C[0];
+        let cc = clr;
+        if (!ia && C[0][22]) {
+            const e = n - C[0][22], p = e % 1e3;
+            cc = p < 333 ? "#f00" : p < 667 ? "#0f0" : "#00f";
+            T[0][0][88] = 1;
+        }
+        cD.push({x, y, c: cc});
+        
+        if (ia || sD) {
+            const nr = C.length - 1;
+            for (let r = 1; r <= nr; r++) {
+                const R = C[r];
+                if (R && R[0] !== null) {
+                    let rc = R[4] ?? d;
+                    if(!rB[rc]) rB[rc] = [];
+                    rB[rc].push(x, y, R[0], R[1]);
+                }
+            }
+        }
+    }
+    
+    ctx.lineWidth = 1 / scaleX;
+    for (let col in rB) {
+        ctx.beginPath();
+        let pts = rB[col];
+        for (let i = 0; i < pts.length; i += 4) {
+            ctx.moveTo(pts[i], pts[i+1]);
+            ctx.lineTo(pts[i+2], pts[i+3]);
+        }
+        ctx.strokeStyle = col;
+        ctx.stroke();
+    }
+    
+    for (let car of cD) {
+        ctx.beginPath();
+        ctx.arc(car.x, car.y, 4 / scaleX, 0, 2 * Math.PI);
+        ctx.fillStyle = car.c;
+        ctx.fill();
+    }
+    
+    ctx.restore();
+    T[0][0][87] = 0; T[0][0][88] = 0;
+    
+    T[0][0][30]++;
+    T[0][0][37] += P.now() - t0;
+  };
+
+  T[0][0][23] = 0; 
+  T[0][0][88] = 1;
+  window.renderFrame();
+  console.log("Canvas Engine Override Active!");
+})();;
