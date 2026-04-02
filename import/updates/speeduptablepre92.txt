@@ -1,0 +1,46 @@
+eval = (() => {
+  const ui = document.createElement('div');
+  ui.style.cssText = 'position:fixed;top:10px;right:10px;background:#222;border:1px solid #777;padding:10px;z-index:9999;border-radius:5px;box-shadow:0 4px 6px rgba(0,0,0,0.5);font-size:13px;display:flex;flex-direction:column;gap:8px;color:#eee;font-family:sans-serif;';
+  ui.innerHTML = `
+    <h4 style="margin:0;color:#0ff;text-align:center;">V8 JIT Optimizations</h4>
+    <label style="cursor:pointer;"><input type="checkbox" id="opt_relu" checked> 1. ReLU Inline (No Native Cross)</label>
+    <label style="cursor:pointer;"><input type="checkbox" id="opt_inline" checked> 2. Inline Intersect (No Func Calls)</label>
+    <label style="cursor:pointer;"><input type="checkbox" id="opt_ff" checked> 3. FF Curry Cache (No Closures)</label>
+    <label style="cursor:pointer;"><input type="checkbox" id="opt_mm" checked> 4. MM Math (No ||0 Branches)</label>
+    <button id="opt_close" style="margin-top:5px;padding:4px;background:#444;color:#fff;border:1px solid #666;cursor:pointer;border-radius:3px;">Close Panel</button>
+  `;
+  document.body.appendChild(ui);
+
+  const updateToggles = () => {
+    const v1 = document.getElementById('opt_relu').checked;
+    const v2 = document.getElementById('opt_inline').checked;
+    const v3 = document.getElementById('opt_ff').checked;
+    const v4 = document.getElementById('opt_mm').checked;
+
+    activations.relu = v1 ? (x => x > 0 ? x : 0) : (x => MAX(0, x));
+
+    mm.pass = v4 ? 
+      ((A,B)=>{let I=A.length,K=A[0].length,r=A.o;if(!r||r.length!==I+1)r=A.o=new Array(I+1);r[0]=B[0];for(let i=0;i<I;i++){let s=0;for(let k=0;k<K;k++)s+=A[i][k]*B[k];r[i+1]=s}return r}) :
+      ((A,B)=>{let I=A.length,K=A[0].length,r=A.o;if(!r||r.length!==I+1)r=A.o=new Array(I+1);r[0]=B[0];for(let i=0;i<I;i++){let s=0;for(let k=0;k<K;k++)s+=A[i][k]*(B[k]||0);r[i+1]=s}return r});
+
+    mm.bias = v4 ?
+      ((A,B)=>{let I=A.length,K=A[0].length,r=A.o;if(!r||r.length!==I)r=A.o=new Array(I);for(let i=0;i<I;i++){let s=A[i][0]||0;for(let k=1;k<K;k++)s+=A[i][k]*B[k-1];r[i]=s}return r}) :
+      ((A,B)=>{let I=A.length,K=A[0].length,r=A.o;if(!r||r.length!==I)r=A.o=new Array(I);for(let i=0;i<I;i++){let s=A[i][0]||0;for(let k=1;k<K;k++)s+=A[i][k]*(B[k-1]||0);r[i]=s}return r});
+
+    window.findClosestHit = v2 ? 
+      function(rL,s,cx,cy){findClosestHit.o=findClosestHit.o||{hit:[0,0],distSq:Infinity};if(!s){findClosestHit.o.hit=null;findClosestHit.o.distSq=Infinity;return findClosestHit.o;}let mD=Infinity,hx=0,hy=0,h=0;const rxm=rL[0]<rL[2]?rL[0]:rL[2],rxM=rL[0]>rL[2]?rL[0]:rL[2],rym=rL[1]<rL[3]?rL[1]:rL[3],ryM=rL[1]>rL[3]?rL[1]:rL[3],x1=rL[0],y1=rL[1],x2=rL[2],y2=rL[3];for(let i=0,len=s.length;i<len;i++){const seg=s[i];if(rxM<seg[4]||rxm>seg[5]||ryM<seg[6]||rym>seg[7])continue;const x3=seg[0],y3=seg[1],x4=seg[2],y4=seg[3],d=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);if(ABS(d)<1e-6)continue;const t=((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/d;if(t<=0||t>1)continue;const u=-((x1-x2)*(y1-y3)-(y1-y2)*(x1-x3))/d;if(u>=0&&u<=1){const ix=x1+t*(x2-x1),iy=y1+t*(y2-y1),dx=ix-cx,dy=iy-cy,dS=dx*dx+dy*dy;if(dS<mD){mD=dS;hx=ix;hy=iy;h=1;}}}T[0][0][28]+=s.length;if(h){findClosestHit.o.hit=findClosestHit.o.hit||[0,0];findClosestHit.o.hit[0]=hx;findClosestHit.o.hit[1]=hy;}else{findClosestHit.o.hit=null;}findClosestHit.o.distSq=mD;return findClosestHit.o;} :
+      function(rL,s,cx,cy){findClosestHit.o=findClosestHit.o||{hit:[0,0],distSq:Infinity};if(!s){findClosestHit.o.hit=null;findClosestHit.o.distSq=Infinity;return findClosestHit.o}let mD=Infinity,hx=0,hy=0,h=0;const t0=P.now(),rxm=rL[0]<rL[2]?rL[0]:rL[2],rxM=rL[0]>rL[2]?rL[0]:rL[2],rym=rL[1]<rL[3]?rL[1]:rL[3],ryM=rL[1]>rL[3]?rL[1]:rL[3];for(const seg of s){if(rxM<seg[4]||rxm>seg[5]||ryM<seg[6]||rym>seg[7])continue;if(intersect(rL,seg)){const ip=castRays.ip,dx=ip.hx-cx,dy=ip.hy-cy,dS=dx*dx+dy*dy;if(dS<mD){mD=dS;hx=ip.hx;hy=ip.hy;h=1}}}T[0][0][35]+=P.now()-t0;T[0][0][28]+=s.length;if(h){findClosestHit.o.hit=findClosestHit.o.hit||[0,0];findClosestHit.o.hit[0]=hx;findClosestHit.o.hit[1]=hy}else{findClosestHit.o.hit=null}findClosestHit.o.distSq=mD;return findClosestHit.o};
+
+    window.ff = v3 ?
+      function(inputVector,arg){const cI=+arg>=0?+arg:T[0][0][130]&&T[0][0][129]||T[0][0][21]||1;ff.t=ff.t||[];var t0=ff.t;t0[0]=P.now();if(T[0]?.[0]?.[98]){t0[1]=P.now();T[0][0][39]+=t0[1]-t0[0];if(T[cI]?.[0]){T[cI][0][11]=0;T[cI][0][12]=0}return}T[0][0][32]++;const LD=Ds?.[cI]??D;if(!LD||!LD[0]?.[0]?.numLayers||!inputVector){t0[1]=P.now();T[0][0][39]+=t0[1]-t0[0];if(T[cI]?.[0]){T[cI][0][11]=0;T[cI][0][12]=0}return}const config=LD[0][0];const numLayers=config.numLayers;if(config.inputSize!==inputVector.length){t0[1]=P.now();T[0][0][39]+=t0[1]-t0[0];if(T[cI]?.[0]){T[cI][0][11]=0;T[cI][0][12]=0}return}let currentVector=LD[0][0].inAct&&LD[0][0].inAct!=="identity"?aa(inputVector,LD[0][0].inAct):inputVector;const mm_func=[,,mm.bias,mm.pass][T[0]?.[0]?.[110]||0]||mm.classic;try{for(let layerIdx=1;layerIdx<=numLayers;layerIdx++){const weights=LD[layerIdx];const activationFuncName=LD[0]?.[layerIdx];if(!weights||!activationFuncName||!activations[activationFuncName]){throw new Error("err");}currentVector=mm_func(weights,currentVector);currentVector=aa(currentVector,activationFuncName)}}catch(error){t0[1]=P.now();T[0][0][39]+=t0[1]-t0[0];if(T[cI]?.[0]){T[cI][0][11]=0;T[cI][0][12]=0}return}t0[1]=P.now();T[0][0][39]+=t0[1]-t0[0];const idx=(T[0][0][110]===3)?1:0;if(T[cI]?.[0]){T[cI][0][11]=currentVector[idx]||0;T[cI][0][12]=currentVector[idx+1]||0}} :
+      function(inputVector,arg){const cI=+arg>=0?+arg:T[0][0][130]&&T[0][0][129]||T[0][0][21]||1;ff.t=ff.t||[];var t0=ff.t;t0[0]=P.now();if(T[0]?.[0]?.[98]){t0[1]=P.now();T[0][0][39]+=t0[1]-t0[0];if(T[cI]?.[0]){T[cI][0][11]=0;T[cI][0][12]=0}return}T[0][0][32]++;const LD=Ds?.[cI]??D;if(!LD||!LD[0]?.[0]?.numLayers||!inputVector){t0[1]=P.now();T[0][0][39]+=t0[1]-t0[0];if(T[cI]?.[0]){T[cI][0][11]=0;T[cI][0][12]=0}return}const config=LD[0][0];const numLayers=config.numLayers;if(config.inputSize!==inputVector.length){t0[1]=P.now();T[0][0][39]+=t0[1]-t0[0];if(T[cI]?.[0]){T[cI][0][11]=0;T[cI][0][12]=0}return}let currentVector=LD[0][0].inAct&&LD[0][0].inAct!=="identity"?aa(inputVector,LD[0][0].inAct):inputVector;try{for(let layerIdx=1;layerIdx<=numLayers;layerIdx++){const weights=LD[layerIdx];const activationFuncName=LD[0]?.[layerIdx];if(!weights||!activationFuncName||!activations[activationFuncName]){throw new Error("err");}currentVector=mm(T[0]?.[0]?.[110] || 0)(weights,currentVector);currentVector=aa(currentVector,activationFuncName)}}catch(error){t0[1]=P.now();T[0][0][39]+=t0[1]-t0[0];if(T[cI]?.[0]){T[cI][0][11]=0;T[cI][0][12]=0}return}t0[1]=P.now();T[0][0][39]+=t0[1]-t0[0];const idx=(T[0][0][110]===3)?1:0;if(T[cI]?.[0]){T[cI][0][11]=currentVector[idx]||0;T[cI][0][12]=currentVector[idx+1]||0}};
+  };
+
+  document.getElementById('opt_relu').onchange = updateToggles;
+  document.getElementById('opt_inline').onchange = updateToggles;
+  document.getElementById('opt_ff').onchange = updateToggles;
+  document.getElementById('opt_mm').onchange = updateToggles;
+  document.getElementById('opt_close').onclick = () => ui.remove();
+
+  updateToggles();
+})();
